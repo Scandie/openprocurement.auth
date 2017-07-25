@@ -30,6 +30,45 @@ def authorize(*args, **kwargs):
         kwargs['client'] = oauth_provider.auction_client
         kwargs['user'] = user
         kwargs['redirect_uri'] = request.args['redirect_uri']
+        kwargs['oauth_url'] = '/oauth/authorize'
+        response = make_response(render_template('authorize.html', **kwargs))
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '-1'
+        return response
+    elif 'auto_allow' in request.args:
+        return True
+
+    if 'confirm' in request.form:
+        logger.info(
+            'Authorize form {}'.format(repr(request.form['confirm'])),
+            extra={'MESSAGE_ID': AUTH_CONFIRM_FORM,
+                   'BIDDER_ID': repr(user.bidder_id)})
+        return True
+
+    logger.info('Not confirm authorize form', extra={'MESSAGE_ID': AUTH_NOT_CONFIRM_FORM})
+    return False
+
+
+@oauth_provider.route('/oauth/token/v2', methods=['GET', 'POST'])
+@oauth.token_handler
+def access_token_v2():
+    return None
+
+
+@oauth_provider.route('/oauth/authorize/v2', methods=['GET', 'POST'])
+@oauth.authorize_handler
+def authorize_v2(*args, **kwargs):
+
+    user = current_user()
+    if not user:
+        return redirect('/')
+    if request.method == 'GET' and 'auto_allow' not in request.args:
+        logger.info('Get authorize form', extra={'MESSAGE_ID': AUTH_GET_FORM, 'BIDDER_ID': repr(user.bidder_id)})
+        kwargs['client'] = oauth_provider.auction_client
+        kwargs['user'] = user
+        kwargs['redirect_uri'] = request.args['redirect_uri']
+        kwargs['oauth_url'] = '/oauth/authorize/v2'
         response = make_response(render_template('authorize.html', **kwargs))
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
         response.headers['Pragma'] = 'no-cache'
